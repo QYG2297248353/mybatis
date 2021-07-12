@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ms.pojo">
+	<insert id="addProduct" parameterType="Product">
+		insert into Product_ (
+		name,price ) values (#{name},#{price})
+	</insert>
+
+	<delete id="deleteProduct" parameterType="Product">
+		delete from Product_
+		where id= #{id}
+	</delete>
+
+	<select id="getProductbyid" parameterType="_int"
+		resultType="Product">
+		select * from Product_ where id= #{id}
+	</select>
+
+	<update id="updateProductbyid" parameterType="Product">
+		update Product_ set
+		name=#{name},price=#{price} where id=#{id}
+	</update>
+	<select id="listAllProduct" resultType="Product">
+		select * from Product_
+	</select>
+	<!-- 多对一 -->
+	<!-- 取别名->存放条件 -->
+	<resultMap type="Product" id="productBean">
+		<id column="pid" property="id" />
+		<result column="pname" property="name" />
+		<result column="price" property="price" />
+
+		<!-- property: 指的是属性名称, javaType：指的是属性的类型 -->
+		<association property="category" javaType="Category">
+			<id column="cid" property="id" />
+			<result column="cname" property="name" />
+		</association>
+	</resultMap>
+
+	<!-- 根据id查询Product, 关联将Orders查询出来 -->
+	<select id="listProductabout" resultMap="productBean">
+		select c.*, p.*, c.id
+		'cid',
+		p.id 'pid', c.name 'cname', p.name 'pname' from
+		category_ c left
+		join
+		product_ p on c.id = p.cid
+	</select>
+	<select id="getProduct" resultMap="productBean">
+		select c.*, p.*, c.id 'cid',
+		p.id 'pid', c.name 'cname', p.name 'pname'
+		from category_ c
+		left join
+		product_ p on c.id = p.cid
+		where p.id = #{id}
+	</select>
+	<!-- if语句 -->
+	<!-- 繁琐 <select id="listProduct" resultType="Product"> select * from product_ 
+		</select> <select id="listProductByName" resultType="Product"> select * from 
+		product_ where name like concat('%',#{name},'%') </select> -->
+	<select id="listProductif" resultType="Product">
+		select * from product_
+		<if test="name!=null">
+			where name like concat('%',#{name},'%')
+		</if>
+	</select>
+	<!-- where语句 -->
+	<!-- 缺少参数时会报错 <select id="listProduct" resultType="Product"> select * from 
+		product_ <if test="name!=null"> where name like concat('%',#{name},'%') </if> 
+		<if test="price!=0"> and price > #{price} </if> </select> -->
+	<select id="listProductwhere" resultType="Product">
+		select * from product_
+		<where>
+			<if test="name!=null">
+				and name like concat('%',#{name},'%')
+			</if>
+			<if test="price!=null and price!=0">
+				and price > #{price}
+			</if>
+		</where>
+	</select>
+	<!-- where语句->set语句 -->
+	<update id="updateProductset" parameterType="Product">
+		update product_
+		<set>
+			<if test="name != null">name=#{name},</if>
+			<if test="price != null">price=#{price}</if>
+		</set>
+		where id=#{id}
+	</update>
+	<!-- where语句与set语句->trim标签->替换 -->
+	<select id="listProducttrim" resultType="Product">
+		select * from product_
+		<trim prefix="WHERE" prefixOverrides="AND |OR ">
+			<if test="name!=null">
+				and name like concat('%',#{name},'%')
+			</if>
+			<if test="price!=null and price!=0">
+				and price > #{price}
+			</if>
+		</trim>
+	</select>
+	<update id="updateProducttrim" parameterType="Product">
+		update product_
+		<trim prefix="SET" suffixOverrides=",">
+			<if test="name != null">name=#{name},</if>
+			<if test="price != null">price=#{price}</if>
+		</trim>
+		where id=#{id}
+	</update>
+	<!-- choose标签->解决无ifelse -->
+	<select id="listProductchoose" resultType="Product">
+		SELECT * FROM product_
+		<where>
+			<choose>
+				<when test="name != null">
+					and name like concat('%',#{name},'%')
+				</when>
+				<when test="price !=null and price != 0">
+					and price > #{price}
+				</when>
+				<otherwise>
+					and id >1
+				</otherwise>
+			</choose>
+		</where>
+	</select>
+	<!-- foreach标签 -->
+	<select id="listProductforeach" resultType="Product">
+		SELECT * FROM product_
+		WHERE ID in
+		<foreach item="item" index="index" collection="list" open="("
+			separator="," close=")">
+			#{item}
+		</foreach>
+	</select>
+
+	<!-- bind标签 -->
+	<!-- 本来的模糊查询方式 -->
+	<!-- <select id="listProduct" resultType="Product"> -->
+	<!-- select * from product_ where name like concat('%',#{0},'%') -->
+	<!-- </select> -->
+
+	<select id="listProduct" resultType="Product">
+		<bind name="likename" value="'%' + name + '%'" />
+		select * from product_ where name like #{likename}
+	</select>
+
+
+</mapper>
